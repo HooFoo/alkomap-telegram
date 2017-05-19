@@ -32,6 +32,9 @@ gem 'jbuilder', '~> 2.5'
 gem 'telegram-bot-ruby'
 gem 'dotenv-rails'
 gem 'require_all'
+gem 'devise'
+gem 'devise_invitable'
+
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 
