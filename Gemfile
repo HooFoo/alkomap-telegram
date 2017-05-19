@@ -34,7 +34,7 @@ gem 'dotenv-rails'
 gem 'require_all'
 gem 'devise'
 gem 'devise_invitable'
-
+gem 'activeadmin'
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 

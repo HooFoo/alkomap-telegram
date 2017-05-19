@@ -38,13 +38,18 @@ class TelegramBot
     begin
       chat_id = message.chat.id
       if message.location
-        points  = Point.where("lat <= #{message.location.latitude+0.02} and lat >= #{message.location.latitude-0.02} and lng <= #{message.location.longitude+0.02} and lng >= #{message.location.longitude-0.02}").limit(5)
-        send_reply chat_id, 'Вот что я нашел рядом', points_msg(points)
+        points  = Point.near(message.location.latitude, message.location.longitude)
+        points.each do |p|
+          p.calc_distance(message.location.latitude, message.location.longitude)
+        end
+        sorted = points.sort do |a,b|
+          a.distance <=> b.distance
+        end
+        reply =  points_msg(sorted)
+        send_reply chat_id, reply[:text], reply[:keyboard]
       else
         send_reply chat_id, 'Привет, я помогу тебе найти алкоголь ночью. Отправь мне свою локацию.', initial_keyboard
       end
-    rescue ApiException => ex
-      send_reply message.chat.id, ex.message
     rescue => ex
       Rails.logger.error "Telegram bot  error: #{ex.message}"
       send_reply message.chat.id, 'Упс, у меня что-то сломалось. Попробуйте написать что-то другое.'
@@ -74,15 +79,26 @@ class TelegramBot
   end
 
   def point(p)
-    Telegram::Bot::Types::InlineKeyboardButton.new text: "#{p.name} -- #{p.description}",
+    text = "#{p.name}\n#{p.description}\n---\n"
+    btn = Telegram::Bot::Types::InlineKeyboardButton.new text: "#{p.name} -- #{p.distance.round(0)}м",
                                                    url: "https://maps.google.com/?q=#{p.lat},#{p.lng}"
+    {
+        text:text,
+        btn: btn
+    }
   end
 
   def points_msg(points)
-    serialized = []
+    buttons = []
+    string = "Вот что мне удалось найти: \n"
     points.each do |p|
-      serialized << point(p)
+      spoint = point(p)
+      buttons << spoint[:btn]
+      string += spoint[:text]
     end
-    Telegram::Bot::Types::InlineKeyboardMarkup.new inline_keyboard: serialized
+    {
+        text: string,
+        keyboard: Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: buttons)
+    }
   end
 end
