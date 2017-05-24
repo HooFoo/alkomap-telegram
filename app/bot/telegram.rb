@@ -38,14 +38,8 @@ class TelegramBot
     begin
       chat_id = message.chat.id
       if message.location
-        points  = Point.near(message.location.latitude, message.location.longitude)
-        points.each do |p|
-          p.calc_distance(message.location.latitude, message.location.longitude)
-        end
-        sorted = points.sort do |a,b|
-          a.distance <=> b.distance
-        end
-        reply =  points_msg(sorted)
+        points  = Point.by_distance(message.location.latitude, message.location.longitude)
+        reply =  points_msg(points)
         send_reply chat_id, reply[:text], reply[:keyboard]
       else
         send_reply chat_id, 'Привет, я помогу тебе найти алкоголь ночью. Отправь мне свою локацию.', initial_keyboard
@@ -80,7 +74,7 @@ class TelegramBot
 
   def point(p)
     text = "#{p.name}\n#{p.description}\n---\n"
-    btn = Telegram::Bot::Types::InlineKeyboardButton.new text: "#{p.name} -- #{p.distance.round(0)}м",
+    btn = Telegram::Bot::Types::InlineKeyboardButton.new text: "#{p.name} -- #{(p.distance * 1609.34).round(0)}м",
                                                    url: "https://maps.google.com/?q=#{p.lat},#{p.lng}"
     {
         text:text,
