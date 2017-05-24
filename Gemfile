@@ -35,6 +35,10 @@ gem 'require_all'
 gem 'devise'
 gem 'devise_invitable'
 gem 'activeadmin'
+gem 'geocoder'
+gem 'redis', '~>3.2'
+gem 'hashie'
+
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 

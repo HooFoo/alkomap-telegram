@@ -37,17 +37,30 @@ class TelegramBot
   def process_message(message)
     begin
       chat_id = message.chat.id
+      history = Dialog.new(message.chat.id,HistoryStorage.get_user_session(chat_id))
       if message.location
-        points  = Point.by_distance(message.location.latitude, message.location.longitude)
-        reply =  points_msg(points)
-        send_reply chat_id, reply[:text], reply[:keyboard]
+        if history.state != 'point_location'
+          create_points_message(chat_id, message.location.latitude, message.location.longitude)
+        end
       else
-        send_reply chat_id, 'Привет, я помогу тебе найти алкоголь ночью. Отправь мне свою локацию.', initial_keyboard
+        case message.text
+          when '/start'
+            send_reply chat_id, 'Привет, я помогу тебе найти алкоголь ночью. Отправь мне свою локацию.', initial_keyboard
+          else
+            coords = Geocoder.coordinates(message.text)
+            create_points_message(chat_id,coords[0],coords[1])
+        end
       end
     rescue => ex
       Rails.logger.error "Telegram bot  error: #{ex.message}"
       send_reply message.chat.id, 'Упс, у меня что-то сломалось. Попробуйте написать что-то другое.'
     end
+  end
+
+  def create_points_message(chat_id, lat, lng)
+    points = Point.by_distance(lat, lng)
+    reply = points_msg(points)
+    send_reply chat_id, reply[:text], reply[:keyboard]
   end
 
   def process_cb (msg)
