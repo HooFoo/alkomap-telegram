@@ -1,5 +1,5 @@
 class HistoryStorage
-    @@redis = Redis.new
+    @@redis = Redis.new url: ENV['REDIS_URL']
 
     def self.get_storage
       @@redis
