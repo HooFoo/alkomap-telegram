@@ -1,6 +1,6 @@
 class Dialog
 
-  STATES = %w(hello point_location)
+  STATES = %w(start new finish address point_name point_description point_location point_type point_options)
 
   attr_reader :id
   attr_accessor :state
@@ -17,7 +17,7 @@ class Dialog
   end
 
   def clear
-    @state = STATES[0]
+    @state = 'address'
     @answers = {}
   end
 

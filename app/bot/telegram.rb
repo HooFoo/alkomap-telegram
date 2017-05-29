@@ -26,11 +26,9 @@ class TelegramBot
     Rails.logger.debug msg.to_yaml
     case msg
       when Telegram::Bot::Types::InlineQuery
-        process_inline msg
       when Telegram::Bot::Types::Message
         process_message msg
       when Telegram::Bot::Types::CallbackQuery
-        process_cb msg
     end
   end
 
@@ -41,16 +39,32 @@ class TelegramBot
       if message.location
         if history.state != 'point_location'
           create_points_message(chat_id, message.location.latitude, message.location.longitude)
+        else
+          history.state = ''
         end
       else
         case message.text
           when '/start'
-            send_reply chat_id, 'Привет, я помогу тебе найти алкоголь ночью. Отправь мне свою локацию.', initial_keyboard
+            history.state = 'start'
+            send_reply chat_id,
+                       ReplicaService.get_replica_for_state(history.state, message.from.first_name), initial_keyboard
+          when '/new'
+            history.state = 'new'
+
+          when '/finish'
+            history.state = 'finish'
+
           else
-            coords = Geocoder.coordinates(message.text)
-            create_points_message(chat_id,coords[0],coords[1])
+            if history.state =~ /point_.+/
+
+            else
+              history.state = 'address'
+              coords = Geocoder.coordinates(message.text)
+              create_points_message(chat_id,coords[0],coords[1])
+            end
         end
       end
+      HistoryStorage.update_user_session chat_id, history
     rescue => ex
       Rails.logger.error "Telegram bot  error: #{ex.message}"
       send_reply message.chat.id, 'Упс, у меня что-то сломалось. Попробуйте написать что-то другое.'
@@ -63,19 +77,11 @@ class TelegramBot
     send_reply chat_id, reply[:text], reply[:keyboard]
   end
 
-  def process_cb (msg)
-
-  end
 
   def send_reply(chat_id, text, keyboard=nil)
     @client.api.send_message chat_id: chat_id,
                              reply_markup: keyboard,
                            text: text
-  end
-
-
-  def send_link id,uname,name,link
-
   end
 
   def initial_keyboard
