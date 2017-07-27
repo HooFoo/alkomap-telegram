@@ -1,6 +1,6 @@
 class Dialog
 
-  STATES = %w(start new finish address point_name point_description point_location point_type point_options)
+  STATES = %w(start new finish address cancel point_name point_description point_location point_type point_options)
 
   attr_reader :id
   attr_accessor :state

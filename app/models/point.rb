@@ -11,15 +11,9 @@ class Point < ActiveRecord::Base
   validates :user, presence: true
   validates :lng, :lat, :name, presence: true
   validates :lng, :lat, numericality: true
-  # validates_attachment_presence :picture, presence: false,
-  #                               content_type: { content_type: ["image/jpeg", "image/gif", "image/png"] },
-  #                               less_than: 1.megabytes
 
 
-  #has_attached_file :picture, styles: { medium: "300x300>", thumb: "100x100>" }, default_url: "/images/missing.png"
-  #validates_attachment_content_type :picture, content_type: /\Aimage\/.*\Z/
-
-  scope :by_distance, -> (lat, lng) { select("*, SQRT(POW(69.1 * (lat - #{lat}), 2) + POW(69.1 * (#{lng} - lng) * COS(lat / 57.3), 2)) AS distance").where("(point_type = 'shop') or (point_type = 'bar')").order('distance ASC').limit(5)}
+  scope :by_distance, -> (lat, lng) { select("*, SQRT(POW(69.1 * (lat - #{lat}), 2) + POW(69.1 * (#{lng} - lng) * COS(lat / 57.3), 2)) AS distance").where("(point_type = 'shop') or (point_type = 'bar')").order('distance ASC').limit(5).select { |p| p.distance <= 20 }}
 
   def self.by_settings bounds,settings
     res = []

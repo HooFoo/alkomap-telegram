@@ -37,10 +37,12 @@ class TelegramBot
       chat_id = message.chat.id
       history = Dialog.new(message.chat.id,HistoryStorage.get_user_session(chat_id))
       if message.location
-        if history.state != 'point_location'
+        if history.state != 'point_description'
           create_points_message(chat_id, message.location.latitude, message.location.longitude)
         else
-          history.state = ''
+          history.state = 'point_location'
+          send_reply chat_id,
+                     ReplicaService.get_replica_for_state(history.state, message), initial_keyboard
         end
       else
         case message.text
@@ -50,13 +52,42 @@ class TelegramBot
                        ReplicaService.get_replica_for_state(history.state, message.from.first_name), initial_keyboard
           when '/new'
             history.state = 'new'
-
-          when '/finish'
-            history.state = 'finish'
-
+            send_reply chat_id,
+                       ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
+          when '/cancel'
+            history.state = 'cancel'
+            send_reply chat_id,
+                       ReplicaService.get_replica_for_state(history.state, message.from.first_name), initial_keyboard
           else
-            if history.state =~ /point_.+/
+            if history.state =~ /point_.+/ || history.state == 'new'
+              case history.state
+                when 'new'
+                  history.state = 'point_name'
+                  send_reply chat_id,
+                             ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
+                when 'point_name'
+                  history.state = 'point_description'
+                  send_reply chat_id,
+                             ReplicaService.get_replica_for_state(history.state, message.from.first_name), location_keyboard
+                when 'point_description'
+                  history.state = 'point_location'
+                  send_reply chat_id,
+                             ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
 
+                when 'point_type'
+                    history.state = 'point_options'
+                    send_reply chat_id,
+                               ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
+                when 'point_location'
+                    history.state = 'point_type'
+                    send_reply chat_id,
+                               ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
+                when 'point_options'
+                  history.state = 'finish'
+                  send_reply chat_id,
+                             ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
+
+              end
             else
               history.state = 'address'
               coords = Geocoder.coordinates(message.text)
@@ -64,6 +95,16 @@ class TelegramBot
             end
         end
       end
+      answer = {
+          text: message.text
+      }
+      if message.location
+        answer[:location] ={
+            lat: message.location[:lat],
+            lng: message.location[:lng]
+        }
+      end
+      history.add_answer(history.state, answer)
       HistoryStorage.update_user_session chat_id, history
     rescue => ex
       Rails.logger.error "Telegram bot  error: #{ex.message}"
@@ -87,6 +128,20 @@ class TelegramBot
   def initial_keyboard
     chat = Telegram::Bot::Types::KeyboardButton.new text: "Найти алкоголь ночью",
                                                     request_location: true
+    Telegram::Bot::Types::ReplyKeyboardMarkup.new keyboard:[chat],
+                                                  resize_keyboard: true
+  end
+
+  def location_keyboard
+    chat = Telegram::Bot::Types::KeyboardButton.new text: "Я нахожусь прямо в нем!",
+                                                    request_location: true
+    cancel = Telegram::Bot::Types::KeyboardButton.new text: "/cancel"
+    Telegram::Bot::Types::ReplyKeyboardMarkup.new keyboard:[[chat],[cancel]],
+                                                  resize_keyboard: true
+  end
+
+  def cancel_keyboard
+    chat = Telegram::Bot::Types::KeyboardButton.new text: "/cancel"
     Telegram::Bot::Types::ReplyKeyboardMarkup.new keyboard:[chat],
                                                   resize_keyboard: true
   end
