@@ -8,6 +8,14 @@ class Point < ActiveRecord::Base
 
   Types = %w(shop bar message marker unapproved)
 
+  DefaultOptions = {
+    isFulltime: true,
+    cardAccepted: false,
+    beer: true,
+    hard: true,
+    elite: false
+  }
+
   validates :user, presence: true
   validates :lng, :lat, :name, presence: true
   validates :lng, :lat, numericality: true

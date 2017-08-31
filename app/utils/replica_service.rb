@@ -7,7 +7,8 @@ class ReplicaService
   private
 
   def self.start(message)
-    'Привет, я помогу тебе найти алкоголь ночью. Отправь мне свою локацию или напиши ближайший адрес.'
+    "Привет, я помогу тебе найти алкоголь ночью. Отправь мне свою локацию или напиши ближайший адрес.\n" +
+    "Так же ты можешь рассказать нам о месте, где можно купить алкоголь ночью. /new"
   end
 
   def self.new(message)
@@ -46,4 +47,18 @@ class ReplicaService
 
   end
 
+  def self.point_option_localization(option)
+    case option
+      when :isFulltime
+        'Открыто круглосуточно'
+      when :cardAccepted
+        'Принимают к оплате карты'
+      when :beer
+        'Можно купить пиво'
+      when :hard
+        'Можно купить крепкий алкоголь'
+      when :elite
+        'Есть дорогие сорта алкоголя'
+    end
+  end
 end

@@ -11,9 +11,7 @@ class TelegramBot
     begin
       update = Telegram::Bot::Types::Update.new(data)
 
-      message = update.message
-
-      process message
+      process update
 
     rescue Exception => e
       Rails.logger.error e
@@ -24,11 +22,12 @@ class TelegramBot
 
   def process(msg)
     Rails.logger.debug msg.to_yaml
-    case msg
+    case msg.message
       when Telegram::Bot::Types::InlineQuery
       when Telegram::Bot::Types::Message
-        process_message msg
+        process_message msg.message
       when Telegram::Bot::Types::CallbackQuery
+        process_callback msg
     end
   end
 
@@ -72,12 +71,12 @@ class TelegramBot
                 when 'point_description'
                   history.state = 'point_location'
                   send_reply chat_id,
-                             ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
+                             ReplicaService.get_replica_for_state(history.state, message.from.first_name), types_keyboard
 
                 when 'point_type'
                     history.state = 'point_options'
                     send_reply chat_id,
-                               ReplicaService.get_replica_for_state(history.state, message.from.first_name), cancel_keyboard
+                               ReplicaService.get_replica_for_state(history.state, message.from.first_name), options_keyboard
                 when 'point_location'
                     history.state = 'point_type'
                     send_reply chat_id,
@@ -168,5 +167,31 @@ class TelegramBot
         text: string,
         keyboard: Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: buttons)
     }
+  end
+
+  def options_keyboard
+    buttons = []
+   Point::DefaultOptions.each_key do |option|
+      id = "option##{SecureRandom.hex(8)}##{option}"
+      checked = Point::DefaultOptions[option]
+      text = ReplicaService.point_option_localization(option)
+      text += ' ✅' if checked
+      buttons << Telegram::Bot::Types::InlineKeyboardButton.new( text: text, callback_data: id)
+    end
+    Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: buttons)
+  end
+
+  def types_keyboard
+   buttons = []
+   %w(shop bar).each do |option|
+      id = "type##{SecureRandom.hex(6)}##{option}"
+      text = option == 'shop' ? 'Магазин' : 'Бар'
+      buttons << Telegram::Bot::Types::InlineKeyboardButton.new( text: text, callback_data: id)
+    end
+    Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: buttons)
+  end
+
+  def process_callback(message)
+    puts message.data
   end
 end
